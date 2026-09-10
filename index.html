@@ -159,6 +159,27 @@
         let chartComparativo = null;
         let chartDistribucion = null;
 
+        // Función de extracción robusta para obtener KMs de cualquier formato de objeto
+        function extraerKilometros(obj) {
+            if (!obj) return 0;
+            
+            // 1. Directo por campo explícito
+            if (obj.kmRecorridos !== undefined && obj.kmRecorridos !== '') return parseFloat(obj.kmRecorridos) || 0;
+            if (obj.kilometros !== undefined && obj.kilometros !== '') return parseFloat(obj.kilometros) || 0;
+            if (obj.km !== undefined && obj.km !== '') return parseFloat(obj.km) || 0;
+            if (obj.kmRecorrido !== undefined && obj.kmRecorrido !== '') return parseFloat(obj.kmRecorrido) || 0;
+            if (obj.kilometraje !== undefined && obj.kilometraje !== '') return parseFloat(obj.kilometraje) || 0;
+
+            // 2. Por cálculo de odómetro (Km Final - Km Inicial)
+            const kmFin = parseFloat(obj.kmFinal || obj.kilometrajeFinal || obj.kmFin || 0);
+            const kmIni = parseFloat(obj.kmInicial || obj.kilometrajeInicial || obj.kmIni || 0);
+            if (kmFin > 0 && kmFin >= kmIni) {
+                return kmFin - kmIni;
+            }
+
+            return 0;
+        }
+
         function cargarDashboard() {
             const data = DB.get() || {};
             const mesSeleccionado = document.getElementById('filtroMes').value;
@@ -166,6 +187,7 @@
             const vehiculos = data.vehiculos || [];
             const movimientos = data.movimientos || [];
             const consolidados = data.consolidadosMensuales || [];
+            const reportes = data.reportes || data.reportesMensuales || [];
 
             const mapaRendimiento = {};
             const alertas = [];
@@ -190,7 +212,7 @@
                 };
             });
 
-            // 2. Acumular Movimientos/Cargas (Ingresos, Gastos Variables y Kilometraje)
+            // 2. Acumular Movimientos / Flujos diarios
             movimientos.forEach(m => {
                 const fechaMov = m.fecha || m.fechaCarga || '';
                 if (mesSeleccionado && fechaMov && !fechaMov.startsWith(mesSeleccionado)) {
@@ -227,17 +249,19 @@
                     mapaRendimiento[placaMov].facturado += parseFloat(m.facturado) || 0;
                 }
 
-                if (m.kmRecorridos || m.kilometros) {
-                    mapaRendimiento[placaMov].kilometros += parseFloat(m.kmRecorridos || m.kilometros || 0);
-                }
+                // Sumar Kilometraje de movimientos
+                mapaRendimiento[placaMov].kilometros += extraerKilometros(m);
             });
 
-            // 3. Consolidar cargas mensuales históricas
-            consolidados.forEach(c => {
+            // 3. Consolidar Cargas / Reportes Mensuales Históricos
+            const listaReportes = [...consolidados, ...reportes];
+            listaReportes.forEach(c => {
                 if (c.estado === 'ANULADO') return;
-                if (mesSeleccionado && c.mes && c.mes !== mesSeleccionado) return;
+                
+                const fechaRef = c.mes || c.fecha || c.periodo || '';
+                if (mesSeleccionado && fechaRef && !fechaRef.startsWith(mesSeleccionado)) return;
 
-                const placaCons = (c.vehiculoPlaca || c.placa || '').trim();
+                const placaCons = (c.vehiculoPlaca || c.placa || c.vehiculo || '').trim();
                 if (!placaCons) return;
 
                 if (!mapaRendimiento[placaCons]) {
@@ -263,7 +287,9 @@
 
                 mapaRendimiento[placaCons].costosVariables += parseFloat(c.costosVariables || c.gastosVariables || 0);
                 mapaRendimiento[placaCons].facturado += parseFloat(c.facturado || c.montoFacturado || c.totalFacturado || 0);
-                mapaRendimiento[placaCons].kilometros += parseFloat(c.kmRecorridos || c.kilometros || 0);
+                
+                // Sumar Kilometraje del reporte
+                mapaRendimiento[placaCons].kilometros += extraerKilometros(c);
             });
 
             // 4. Renderizar Tabla, Alertas y Cálculos de KPIs
@@ -313,7 +339,7 @@
                     tbody.innerHTML += `
                         <tr class="hover:bg-slate-50 transition">
                             <td class="p-4 font-bold text-slate-800">${v.placa} <span class="text-xs font-normal text-slate-400">(${v.tipo})</span></td>
-                            <td class="p-4 text-right text-slate-600">${v.kilometros.toLocaleString('en-US')} km</td>
+                            <td class="p-4 text-right font-semibold text-slate-700">${v.kilometros.toLocaleString('en-US')} km</td>
                             <td class="p-4 text-right text-slate-600">$${v.costosFijos.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-4 text-right text-slate-600">$${v.costosVariables.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-4 text-right font-bold text-rose-600">$${costoTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
