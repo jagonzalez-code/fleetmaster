@@ -159,20 +159,33 @@
         let chartComparativo = null;
         let chartDistribucion = null;
 
-        // Función de extracción robusta para obtener KMs de cualquier formato de objeto
+        // Función purificadora de números: convierte textos como "2016 km", "2,016km" o "$100" en números puros
+        function limpiarNumero(val) {
+            if (val === null || val === undefined) return 0;
+            if (typeof val === 'number') return isNaN(val) ? 0 : val;
+            
+            // Reemplazar comas de miles si existen y limpiar todo caracter que no sea dígito o punto
+            const str = String(val).replace(/,/g, '');
+            const coincidencia = str.match(/-?\d+(\.\d+)?/);
+            return coincidencia ? parseFloat(coincidencia[0]) : 0;
+        }
+
+        // Extractor universal de kilómetros
         function extraerKilometros(obj) {
             if (!obj) return 0;
             
-            // 1. Directo por campo explícito
-            if (obj.kmRecorridos !== undefined && obj.kmRecorridos !== '') return parseFloat(obj.kmRecorridos) || 0;
-            if (obj.kilometros !== undefined && obj.kilometros !== '') return parseFloat(obj.kilometros) || 0;
-            if (obj.km !== undefined && obj.km !== '') return parseFloat(obj.km) || 0;
-            if (obj.kmRecorrido !== undefined && obj.kmRecorrido !== '') return parseFloat(obj.kmRecorrido) || 0;
-            if (obj.kilometraje !== undefined && obj.kilometraje !== '') return parseFloat(obj.kilometraje) || 0;
+            // 1. Probar en todas las propiedades donde pueda estar guardado el valor
+            const campos = ['kmRecorridos', 'kilometros', 'km', 'kmRecorrido', 'kilometraje', 'kms'];
+            for (let c of campos) {
+                if (obj[c] !== undefined && obj[c] !== null && obj[c] !== '') {
+                    const num = limpiarNumero(obj[c]);
+                    if (num > 0) return num;
+                }
+            }
 
-            // 2. Por cálculo de odómetro (Km Final - Km Inicial)
-            const kmFin = parseFloat(obj.kmFinal || obj.kilometrajeFinal || obj.kmFin || 0);
-            const kmIni = parseFloat(obj.kmInicial || obj.kilometrajeInicial || obj.kmIni || 0);
+            // 2. Si viene de odómetro (Km Final - Km Inicial)
+            const kmFin = limpiarNumero(obj.kmFinal || obj.kilometrajeFinal || obj.kmFin);
+            const kmIni = limpiarNumero(obj.kmInicial || obj.kilometrajeInicial || obj.kmIni);
             if (kmFin > 0 && kmFin >= kmIni) {
                 return kmFin - kmIni;
             }
@@ -192,15 +205,15 @@
             const mapaRendimiento = {};
             const alertas = [];
 
-            // 1. Inicializar mapa con los vehículos registrados
+            // 1. Inicializar mapa con vehículos
             vehiculos.forEach(v => {
                 const placaKey = (v.placa || v.vehiculoPlaca || '').trim();
                 if (!placaKey) return;
 
-                const dep = parseFloat(v.depreciacion) || 0;
-                const sal = parseFloat(v.salario) || 0;
-                const seg = parseFloat(v.seguro) || 0;
-                const otr = parseFloat(v.otrosFijos) || 0;
+                const dep = limpiarNumero(v.depreciacion);
+                const sal = limpiarNumero(v.salario);
+                const seg = limpiarNumero(v.seguro);
+                const otr = limpiarNumero(v.otrosFijos);
 
                 mapaRendimiento[placaKey] = {
                     placa: placaKey,
@@ -233,7 +246,7 @@
                     };
                 }
 
-                const monto = parseFloat(m.monto || m.montoTotal || m.montoIngreso || m.facturado || 0);
+                const monto = limpiarNumero(m.monto || m.montoTotal || m.montoIngreso || m.facturado);
                 const tipoFlujo = (m.tipoFlujo || m.tipo || '').toUpperCase();
 
                 if (tipoFlujo === 'INGRESO' || m.tipoIngreso || tipoFlujo === 'FACTURA' || tipoFlujo === 'VENTA') {
@@ -246,14 +259,13 @@
                 }
 
                 if (m.facturado && tipoFlujo !== 'INGRESO') {
-                    mapaRendimiento[placaMov].facturado += parseFloat(m.facturado) || 0;
+                    mapaRendimiento[placaMov].facturado += limpiarNumero(m.facturado);
                 }
 
-                // Sumar Kilometraje de movimientos
                 mapaRendimiento[placaMov].kilometros += extraerKilometros(m);
             });
 
-            // 3. Consolidar Cargas / Reportes Mensuales Históricos
+            // 3. Consolidar Reportes Mensuales Históricos
             const listaReportes = [...consolidados, ...reportes];
             listaReportes.forEach(c => {
                 if (c.estado === 'ANULADO') return;
@@ -275,20 +287,20 @@
                     };
                 }
 
-                const dep = parseFloat(c.depreciacion) || 0;
-                const sal = parseFloat(c.salario) || 0;
-                const seg = parseFloat(c.seguro) || 0;
-                const otr = parseFloat(c.otrosFijos) || 0;
+                const dep = limpiarNumero(c.depreciacion);
+                const sal = limpiarNumero(c.salario);
+                const seg = limpiarNumero(c.seguro);
+                const otr = limpiarNumero(c.otrosFijos);
                 const fijosMes = dep + sal + seg + otr;
 
                 if (fijosMes > 0) {
                     mapaRendimiento[placaCons].costosFijos = fijosMes;
                 }
 
-                mapaRendimiento[placaCons].costosVariables += parseFloat(c.costosVariables || c.gastosVariables || 0);
-                mapaRendimiento[placaCons].facturado += parseFloat(c.facturado || c.montoFacturado || c.totalFacturado || 0);
+                mapaRendimiento[placaCons].costosVariables += limpiarNumero(c.costosVariables || c.gastosVariables);
+                mapaRendimiento[placaCons].facturado += limpiarNumero(c.facturado || c.montoFacturado || c.totalFacturado);
                 
-                // Sumar Kilometraje del reporte
+                // Extraer kilómetros limpiando textos como "km"
                 mapaRendimiento[placaCons].kilometros += extraerKilometros(c);
             });
 
@@ -339,7 +351,7 @@
                     tbody.innerHTML += `
                         <tr class="hover:bg-slate-50 transition">
                             <td class="p-4 font-bold text-slate-800">${v.placa} <span class="text-xs font-normal text-slate-400">(${v.tipo})</span></td>
-                            <td class="p-4 text-right font-semibold text-slate-700">${v.kilometros.toLocaleString('en-US')} km</td>
+                            <td class="p-4 text-right font-bold text-slate-700">${v.kilometros.toLocaleString('en-US')} km</td>
                             <td class="p-4 text-right text-slate-600">$${v.costosFijos.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-4 text-right text-slate-600">$${v.costosVariables.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
                             <td class="p-4 text-right font-bold text-rose-600">$${costoTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
