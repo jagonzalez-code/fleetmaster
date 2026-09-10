@@ -9,78 +9,166 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-900 font-sans text-slate-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-slate-900 font-sans text-slate-800 h-screen flex items-center justify-center p-4">
 
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6">
-        <!-- LOGO Y TÍTULO -->
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600/20 text-indigo-500 rounded-2xl mb-2 border border-indigo-500/30">
-                <i class="fa-solid fa-truck-fast text-3xl"></i>
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-800">
+        <!-- Encabezado -->
+        <div class="bg-slate-950 p-6 text-center border-b border-slate-800">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-indigo-600 text-white rounded-xl mb-3 shadow-lg">
+                <i class="fa-solid fa-truck-fast text-xl"></i>
             </div>
-            <h1 class="text-2xl font-bold tracking-wider text-white">FLEETMASTER</h1>
-            <p class="text-xs text-slate-400">Control de Flotillas &amp; Gestión de Rentabilidad</p>
+            <h1 class="text-2xl font-extrabold text-white tracking-wider">FLEETMASTER</h1>
+            <p class="text-xs text-slate-400 mt-1">Acceso al Sistema de Control de Flota</p>
         </div>
 
-        <!-- FORMULARIO DE ACCESO -->
-        <form onsubmit="iniciarSesion(event)" class="space-y-4">
+        <!-- Formulario de Login -->
+        <form id="formLogin" onsubmit="procesarLogin(event)" class="p-6 space-y-4">
+            <div id="mensajeError" class="hidden p-3 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-xs rounded-r-lg">
+                <!-- Errores dinámicos -->
+            </div>
+
             <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Usuario / Correo</label>
+                <label for="inputUsuario" class="block text-xs font-bold text-slate-600 uppercase mb-1">Usuario</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
-                        <i class="fa-solid fa-user"></i>
-                    </span>
-                    <input type="text" id="login-usuario" required placeholder="Ej: admin o chofer" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="inputUsuario" required placeholder="Ingresa tu usuario"
+                        class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Contraseña</label>
+                <label for="inputPassword" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contraseña</label>
                 <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
-                        <i class="fa-solid fa-lock"></i>
-                    </span>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <i class="fa-solid fa-lock absolute left-3 top-3 text-slate-400 text-sm"></i>
+                    <input type="password" id="inputPassword" required placeholder="••••••••"
+                        class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
             </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Ingresar como:</label>
-                <select id="login-rol" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm font-medium text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                    <option value="ADMIN">Administrador de Flota</option>
-                    <option value="CHOFER">Chofer / Operador</option>
-                </select>
-            </div>
-
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center text-sm">
-                <i class="fa-solid fa-right-to-bracket mr-2"></i> Iniciar Sesión
+            <button type="submit" 
+                class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm transition shadow-md flex items-center justify-center space-x-2">
+                <span>Ingresar al Sistema</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
             </button>
         </form>
 
-        <!-- CREDENCIALES DE PRUEBA -->
-        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-400 border border-slate-700/50 space-y-1">
-            <p class="font-semibold text-slate-300"><i class="fa-solid fa-info-circle mr-1 text-indigo-400"></i> Accesos Demo:</p>
-            <p>• <b>Admin:</b> usuario <code>admin</code> / clave <code>admin123</code></p>
-            <p>• <b>Chofer:</b> usuario <code>chofer</code> / clave <code>chofer123</code></p>
+        <!-- Pie con opción para registrar usuario -->
+        <div class="p-4 bg-slate-50 border-t border-slate-200 text-center flex justify-between items-center text-xs">
+            <span class="text-slate-500">¿No tienes cuenta?</span>
+            <button type="button" onclick="abrirModalRegistro()" class="font-bold text-indigo-600 hover:text-indigo-800 transition">
+                <i class="fa-solid fa-user-plus mr-1"></i> Crear nuevo usuario
+            </button>
         </div>
     </div>
 
-    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <!-- MODAL PARA REGISTRO DE NUEVO USUARIO -->
+    <div id="modalRegistro" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="bg-slate-900 p-4 px-6 text-white flex justify-between items-center">
+                <h2 class="font-bold text-sm"><i class="fa-solid fa-user-plus mr-2 text-indigo-400"></i>Registrar Nuevo Usuario</h2>
+                <button onclick="cerrarModalRegistro()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form id="formRegistro" onsubmit="procesarRegistro(event)" class="p-6 space-y-4">
+                <div id="mensajeErrorRegistro" class="hidden p-3 bg-rose-50 border-l-4 border-rose-500 text-rose-700 text-xs rounded-r-lg"></div>
+
+                <div>
+                    <label for="regNombre" class="block text-xs font-bold text-slate-600 uppercase mb-1">Nombre Completo</label>
+                    <input type="text" id="regNombre" required placeholder="Ej. Juan Pérez"
+                        class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label for="regUsuario" class="block text-xs font-bold text-slate-600 uppercase mb-1">Nombre de Usuario</label>
+                    <input type="text" id="regUsuario" required placeholder="Ej. jperez"
+                        class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label for="regPassword" class="block text-xs font-bold text-slate-600 uppercase mb-1">Contraseña</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••"
+                        class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+
+                <div>
+                    <label for="regRol" class="block text-xs font-bold text-slate-600 uppercase mb-1">Rol de Acceso</label>
+                    <select id="regRol" required class="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="ADMIN">Administrador (Acceso Total / Dashboard)</option>
+                        <option value="CHOFER">Chofer (Acceso Únicamente a Portal Chofer)</option>
+                    </select>
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="cerrarModalRegistro()" class="w-1/2 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg text-sm hover:bg-slate-300 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="w-1/2 py-2 bg-indigo-600 text-white font-bold rounded-lg text-sm hover:bg-indigo-700 transition">
+                        Guardar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/db.js"></script>
     <script>
-        function iniciarSesion(e) {
+        // Si ya hay sesión activa, redirige automáticamente
+        const sesionActual = DB.getSesion();
+        if (sesionActual) {
+            window.location.href = sesionActual.rol === 'CHOFER' ? 'portal-chofer.html' : 'index.html';
+        }
+
+        async function procesarLogin(e) {
             e.preventDefault();
-            const usuario = document.getElementById('login-usuario').value.trim();
-            const rol = document.getElementById('login-rol').value;
+            const usr = document.getElementById('inputUsuario').value;
+            const pass = document.getElementById('inputPassword').value;
+            const errorDiv = document.getElementById('mensajeError');
 
-            // Guardar sesión
-            const sesion = { usuario, rol, activoDesde: new Date().toISOString() };
-            localStorage.setItem('fleet_session', JSON.stringify(sesion));
+            errorDiv.classList.add('hidden');
 
-            // Redirección por rol
-            if (rol === 'ADMIN') {
-                window.location.href = 'index.html';
+            const sesion = await DB.login(usr, pass);
+
+            if (sesion) {
+                if (sesion.rol === 'CHOFER') {
+                    window.location.href = 'portal-chofer.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
             } else {
-                window.location.href = 'portal-chofer.html';
+                errorDiv.innerText = 'Usuario o contraseña incorrectos.';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function abrirModalRegistro() {
+            document.getElementById('modalRegistro').classList.remove('hidden');
+        }
+
+        function cerrarModalRegistro() {
+            document.getElementById('modalRegistro').classList.add('hidden');
+            document.getElementById('formRegistro').reset();
+            document.getElementById('mensajeErrorRegistro').classList.add('hidden');
+        }
+
+        async function procesarRegistro(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('regNombre').value;
+            const usuario = document.getElementById('regUsuario').value;
+            const password = document.getElementById('regPassword').value;
+            const rol = document.getElementById('regRol').value;
+            const errorDiv = document.getElementById('mensajeErrorRegistro');
+
+            errorDiv.classList.add('hidden');
+
+            try {
+                await DB.registrarUsuario({ nombre, usuario, password, rol });
+                alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
+                cerrarModalRegistro();
+                document.getElementById('inputUsuario').value = usuario;
+                document.getElementById('inputPassword').focus();
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove('hidden');
             }
         }
     </script>
