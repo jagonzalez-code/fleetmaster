@@ -170,15 +170,18 @@
             const mapaRendimiento = {};
             const alertas = [];
 
-            // 1. Inicializar lista con los vehículos registrados en el sistema
+            // 1. Inicializar mapa con los vehículos registrados
             vehiculos.forEach(v => {
+                const placaKey = (v.placa || v.vehiculoPlaca || '').trim();
+                if (!placaKey) return;
+
                 const dep = parseFloat(v.depreciacion) || 0;
                 const sal = parseFloat(v.salario) || 0;
                 const seg = parseFloat(v.seguro) || 0;
                 const otr = parseFloat(v.otrosFijos) || 0;
 
-                mapaRendimiento[v.placa] = {
-                    placa: v.placa,
+                mapaRendimiento[placaKey] = {
+                    placa: placaKey,
                     tipo: v.tipo || 'N/A',
                     costosFijos: dep + sal + seg + otr,
                     costosVariables: 0,
@@ -187,15 +190,19 @@
                 };
             });
 
-            // 2. Acumular movimientos individuales (Gastos Variables, Ingresos y Kilometraje)
+            // 2. Acumular Movimientos/Cargas (Ingresos, Gastos Variables y Kilometraje)
             movimientos.forEach(m => {
-                if (mesSeleccionado && m.fecha && !m.fecha.startsWith(mesSeleccionado)) {
+                const fechaMov = m.fecha || m.fechaCarga || '';
+                if (mesSeleccionado && fechaMov && !fechaMov.startsWith(mesSeleccionado)) {
                     return;
                 }
 
-                if (!mapaRendimiento[m.vehiculoPlaca]) {
-                    mapaRendimiento[m.vehiculoPlaca] = {
-                        placa: m.vehiculoPlaca,
+                const placaMov = (m.vehiculoPlaca || m.placa || m.vehiculo || '').trim();
+                if (!placaMov) return;
+
+                if (!mapaRendimiento[placaMov]) {
+                    mapaRendimiento[placaMov] = {
+                        placa: placaMov,
                         tipo: 'N/A',
                         costosFijos: 0,
                         costosVariables: 0,
@@ -204,29 +211,38 @@
                     };
                 }
 
-                const monto = parseFloat(m.monto) || 0;
-                if (m.tipoFlujo === 'GASTO_VARIABLE' || m.tipo === 'GASTO_VARIABLE') {
-                    if (!m.estado || m.estado === 'APROBADO') {
-                        mapaRendimiento[m.vehiculoPlaca].costosVariables += monto;
+                const monto = parseFloat(m.monto || m.montoTotal || m.montoIngreso || m.facturado || 0);
+                const tipoFlujo = (m.tipoFlujo || m.tipo || '').toUpperCase();
+
+                if (tipoFlujo === 'INGRESO' || m.tipoIngreso || tipoFlujo === 'FACTURA' || tipoFlujo === 'VENTA') {
+                    mapaRendimiento[placaMov].facturado += monto;
+                } 
+                else if (tipoFlujo === 'GASTO_VARIABLE' || tipoFlujo === 'GASTO' || tipoFlujo === 'COSTO_VARIABLE') {
+                    if (!m.estado || m.estado === 'APROBADO' || m.estado === 'PROCESADO') {
+                        mapaRendimiento[placaMov].costosVariables += monto;
                     }
-                } else if (m.tipoFlujo === 'INGRESO') {
-                    mapaRendimiento[m.vehiculoPlaca].facturado += monto;
                 }
 
-                // Suma de kilometraje registrado
-                if (m.kmRecorridos) {
-                    mapaRendimiento[m.vehiculoPlaca].kilometros += parseFloat(m.kmRecorridos) || 0;
+                if (m.facturado && tipoFlujo !== 'INGRESO') {
+                    mapaRendimiento[placaMov].facturado += parseFloat(m.facturado) || 0;
+                }
+
+                if (m.kmRecorridos || m.kilometros) {
+                    mapaRendimiento[placaMov].kilometros += parseFloat(m.kmRecorridos || m.kilometros || 0);
                 }
             });
 
-            // 3. Consolidar cargas mensuales si aplican para el período
+            // 3. Consolidar cargas mensuales históricas
             consolidados.forEach(c => {
                 if (c.estado === 'ANULADO') return;
-                if (mesSeleccionado && c.mes !== mesSeleccionado) return;
+                if (mesSeleccionado && c.mes && c.mes !== mesSeleccionado) return;
 
-                if (!mapaRendimiento[c.vehiculoPlaca]) {
-                    mapaRendimiento[c.vehiculoPlaca] = {
-                        placa: c.vehiculoPlaca,
+                const placaCons = (c.vehiculoPlaca || c.placa || '').trim();
+                if (!placaCons) return;
+
+                if (!mapaRendimiento[placaCons]) {
+                    mapaRendimiento[placaCons] = {
+                        placa: placaCons,
                         tipo: 'N/A',
                         costosFijos: 0,
                         costosVariables: 0,
@@ -239,15 +255,15 @@
                 const sal = parseFloat(c.salario) || 0;
                 const seg = parseFloat(c.seguro) || 0;
                 const otr = parseFloat(c.otrosFijos) || 0;
-                
                 const fijosMes = dep + sal + seg + otr;
+
                 if (fijosMes > 0) {
-                    mapaRendimiento[c.vehiculoPlaca].costosFijos = fijosMes;
+                    mapaRendimiento[placaCons].costosFijos = fijosMes;
                 }
 
-                mapaRendimiento[c.vehiculoPlaca].costosVariables += parseFloat(c.costosVariables) || 0;
-                mapaRendimiento[c.vehiculoPlaca].facturado += parseFloat(c.facturado) || 0;
-                mapaRendimiento[c.vehiculoPlaca].kilometros += parseFloat(c.kmRecorridos) || 0;
+                mapaRendimiento[placaCons].costosVariables += parseFloat(c.costosVariables || c.gastosVariables || 0);
+                mapaRendimiento[placaCons].facturado += parseFloat(c.facturado || c.montoFacturado || c.totalFacturado || 0);
+                mapaRendimiento[placaCons].kilometros += parseFloat(c.kmRecorridos || c.kilometros || 0);
             });
 
             // 4. Renderizar Tabla, Alertas y Cálculos de KPIs
@@ -287,8 +303,7 @@
                     datosFacturado.push(v.facturado);
                     datosCostos.push(costoTotal);
 
-                    // Regla de detección de costos atípicos/anomalías:
-                    // Alerta si los costos superan a la facturación o si el gasto variable representa más del 70% del costo total
+                    // Alertas
                     if (costoTotal > v.facturado && v.facturado > 0) {
                         alertas.push(`<strong>${v.placa}:</strong> Los costos totales ($${costoTotal.toFixed(2)}) superan el ingreso facturado ($${v.facturado.toFixed(2)}).`);
                     } else if (v.costosVariables > 0 && (v.costosVariables / (costoTotal || 1)) > 0.7) {
@@ -317,7 +332,7 @@
                 });
             }
 
-            // Desplegar alertas en pantalla
+            // Mostrar u Ocultar Alertas
             const contenedorAlertas = document.getElementById('contenedorAlertas');
             if (alertas.length > 0) {
                 contenedorAlertas.classList.remove('hidden');
@@ -364,7 +379,7 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Gráfico 2: Dona de Distribución de Costos
+            // Gráfico 2: Dona de Distribución
             const ctx2 = document.getElementById('graficoDistribucion').getContext('2d');
             chartDistribucion = new Chart(ctx2, {
                 type: 'doughnut',
