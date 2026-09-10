@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetMaster - Gestión de Vehículos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex">
+            <div>
+                <div class="h-16 flex items-center px-6 bg-slate-950 font-bold text-xl text-white tracking-wider">
+                    <i class="fa-solid fa-truck-fast text-indigo-500 mr-3"></i> FLEETMASTER
+                </div>
+                <nav class="mt-6 px-4 space-y-1">
+                    <a href="index.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-chart-pie w-6"></i> Dashboard
+                    </a>
+                    <a href="vehiculos.html" class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-truck w-6"></i> Flotas y Vehículos
+                    </a>
+                    <a href="costos-ingresos.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-invoice-dollar w-6"></i> Finanzas / Carga
+                    </a>
+                    <a href="reportes.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-pdf w-6"></i> Reportes
+                    </a>
+                    <a href="portal-chofer.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-mobile-screen w-6"></i> Portal Chofer
+                    </a>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center flex justify-between items-center">
+                <span>FleetMaster v1.0</span>
+                <button onclick="DB.logout()" class="text-rose-400 hover:text-rose-300 font-semibold flex items-center">
+                    <i class="fa-solid fa-power-off mr-1"></i> Salir
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+                <h1 class="text-xl font-bold text-slate-800">Administración de Flotas y Vehículos</h1>
+                <button onclick="abrirModalVehiculo()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center">
+                    <i class="fa-solid fa-plus mr-2"></i> Registrar Vehículo
+                </button>
+            </header>
+
+            <main class="p-6 space-y-6">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Unidades Registradas</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4">Placa / ID</th>
+                                    <th class="p-4">Tipo</th>
+                                    <th class="p-4">Flota</th>
+                                    <th class="p-4 text-right">Depreciación (Mensual)</th>
+                                    <th class="p-4 text-right">Salario Chofer (Mensual)</th>
+                                    <th class="p-4 text-right">Seguro (Mensual)</th>
+                                    <th class="p-4 text-right">Otros Fijos (Mensual)</th>
+                                    <th class="p-4 text-right">Total Fijo Mensual</th>
+                                    <th class="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-vehiculos" class="divide-y divide-slate-100">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL REGISTRO DE VEHÍCULO -->
+    <div id="modal-vehiculo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <h3 class="text-lg font-bold text-slate-800">Nuevo Vehículo</h3>
+                <button onclick="cerrarModalVehiculo()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="guardarVehiculo(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Placa / Matrícula</label>
+                        <input type="text" id="v-placa" required placeholder="Ej: ABC-1234" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Vehículo</label>
+                        <select id="v-tipo" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Seleccionar Tipo...</option>
+                            <option value="Camión Pesado (C3+)">Camión Pesado (C3+)</option>
+                            <option value="Camión Mediano (C2)">Camión Mediano (C2)</option>
+                            <option value="Furgón de Carga">Furgón de Carga</option>
+                            <option value="Camioneta / Pick-up">Camioneta / Pick-up</option>
+                            <option value="Van de Reparto">Van de Reparto</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Flota Asignada</label>
+                    <select id="v-flota" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Seleccionar Flota...</option>
+                        <option value="Flota Troncal / Larga Distancia">Flota Troncal / Larga Distancia</option>
+                        <option value="Flota Distribución Local">Flota Distribución Local</option>
+                        <option value="Flota Operaciones Especiales">Flota Operaciones Especiales</option>
+                        <option value="Flota Reserva">Flota Reserva</option>
+                    </select>
+                </div>
+                
+                <hr class="border-slate-200 my-2">
+                <h4 class="text-xs font-bold text-indigo-600 uppercase">Costos Fijos Estándar (Por Mes)</h4>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Depreciación Mensual ($)</label>
+                        <input type="number" step="0.01" id="v-depreciacion" placeholder="0.00" min="0" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Salario Chofer Mensual ($)</label>
+                        <input type="number" step="0.01" id="v-salario" placeholder="0.00" min="0" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Seguro Mensual ($)</label>
+                        <input type="number" step="0.01" id="v-seguro" placeholder="0.00" min="0" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Otros Fijos Mensuales ($)</label>
+                        <input type="number" step="0.01" id="v-otros" placeholder="0.00" min="0" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2 border-t border-slate-200">
+                    <button type="button" onclick="cerrarModalVehiculo()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Guardar Vehículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <script src="js/db.js"></script>
+    <script>
+        DB.verificarSesion('ADMIN');
+
+        function renderizarVehiculos() {
+            const data = DB.get() || {};
+            const tbody = document.getElementById('tabla-vehiculos');
+            tbody.innerHTML = '';
+
+            const vehiculos = data.vehiculos || [];
+
+            if (vehiculos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-xs text-slate-400">No hay vehículos registrados.</td></tr>';
+                return;
+            }
+
+            vehiculos.forEach((v, index) => {
+                const depreciacion = parseFloat(v.depreciacion) || 0;
+                const salario = parseFloat(v.salario) || 0;
+                const seguro = parseFloat(v.seguro) || 0;
+                const otros = parseFloat(v.otrosFijos) || 0;
+                const totalFijoMensual = depreciacion + salario + seguro + otros;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-bold text-slate-800">${v.placa}</td>
+                        <td class="p-4">${v.tipo}</td>
+                        <td class="p-4"><span class="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-semibold">${v.flota}</span></td>
+                        <td class="p-4 text-right">$${depreciacion.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-4 text-right">$${salario.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-4 text-right">$${seguro.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-4 text-right">$${otros.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-4 text-right font-bold text-slate-900 bg-slate-50">$${totalFijoMensual.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="eliminarVehiculo(${index})" class="text-rose-500 hover:text-rose-700 font-bold text-xs"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirModalVehiculo() {
+            document.getElementById('modal-vehiculo').classList.remove('hidden');
+            document.getElementById('modal-vehiculo').classList.add('flex');
+        }
+
+        function cerrarModalVehiculo() {
+            document.getElementById('modal-vehiculo').classList.add('hidden');
+            document.getElementById('modal-vehiculo').classList.remove('flex');
+        }
+
+        function guardarVehiculo(e) {
+            e.preventDefault();
+            const data = DB.get() || {};
+            if(!data.vehiculos) data.vehiculos = [];
+
+            const depreciacion = parseFloat(document.getElementById('v-depreciacion').value) || 0;
+            const salario = parseFloat(document.getElementById('v-salario').value) || 0;
+            const seguro = parseFloat(document.getElementById('v-seguro').value) || 0;
+            const otrosFijos = parseFloat(document.getElementById('v-otros').value) || 0;
+
+            const nuevoVehiculo = {
+                placa: document.getElementById('v-placa').value.trim().toUpperCase(),
+                tipo: document.getElementById('v-tipo').value,
+                flota: document.getElementById('v-flota').value,
+                depreciacion: depreciacion,
+                salario: salario,
+                seguro: seguro,
+                otrosFijos: otrosFijos,
+                costosFijos: depreciacion + salario + seguro + otrosFijos,
+                kmRecorridos: 0
+            };
+
+            data.vehiculos.push(nuevoVehiculo);
+            DB.save(data);
+
+            cerrarModalVehiculo();
+            renderizarVehiculos();
+        }
+
+        function eliminarVehiculo(index) {
+            if (confirm('¿Deseas eliminar este vehículo?')) {
+                const data = DB.get() || {};
+                data.vehiculos.splice(index, 1);
+                DB.save(data);
+                renderizarVehiculos();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderizarVehiculos);
+    </script>
+</body>
+</html>

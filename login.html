@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetMaster - Iniciar Sesión</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 font-sans text-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6">
+        <!-- LOGO Y TÍTULO -->
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-indigo-600/20 text-indigo-500 rounded-2xl mb-2 border border-indigo-500/30">
+                <i class="fa-solid fa-truck-fast text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-wider text-white">FLEETMASTER</h1>
+            <p class="text-xs text-slate-400">Control de Flotillas &amp; Gestión de Rentabilidad</p>
+        </div>
+
+        <!-- FORMULARIO DE ACCESO -->
+        <form onsubmit="iniciarSesion(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Usuario / Correo</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+                    <input type="text" id="login-usuario" required placeholder="Ej: admin o chofer" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Contraseña</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Ingresar como:</label>
+                <select id="login-rol" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm font-medium text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <option value="ADMIN">Administrador de Flota</option>
+                    <option value="CHOFER">Chofer / Operador</option>
+                </select>
+            </div>
+
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center text-sm">
+                <i class="fa-solid fa-right-to-bracket mr-2"></i> Iniciar Sesión
+            </button>
+        </form>
+
+        <!-- CREDENCIALES DE PRUEBA -->
+        <div class="bg-slate-900/60 rounded-xl p-3 text-xs text-slate-400 border border-slate-700/50 space-y-1">
+            <p class="font-semibold text-slate-300"><i class="fa-solid fa-info-circle mr-1 text-indigo-400"></i> Accesos Demo:</p>
+            <p>• <b>Admin:</b> usuario <code>admin</code> / clave <code>admin123</code></p>
+            <p>• <b>Chofer:</b> usuario <code>chofer</code> / clave <code>chofer123</code></p>
+        </div>
+    </div>
+
+    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <script src="js/db.js"></script>
+    <script>
+        function iniciarSesion(e) {
+            e.preventDefault();
+            const usuario = document.getElementById('login-usuario').value.trim();
+            const rol = document.getElementById('login-rol').value;
+
+            // Guardar sesión
+            const sesion = { usuario, rol, activoDesde: new Date().toISOString() };
+            localStorage.setItem('fleet_session', JSON.stringify(sesion));
+
+            // Redirección por rol
+            if (rol === 'ADMIN') {
+                window.location.href = 'index.html';
+            } else {
+                window.location.href = 'portal-chofer.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetMaster - Finanzas y Carga Operativa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex">
+            <div>
+                <div class="h-16 flex items-center px-6 bg-slate-950 font-bold text-xl text-white tracking-wider">
+                    <i class="fa-solid fa-truck-fast text-indigo-500 mr-3"></i> FLEETMASTER
+                </div>
+                <nav class="mt-6 px-4 space-y-1">
+                    <a href="index.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-chart-pie w-6"></i> Dashboard
+                    </a>
+                    <a href="vehiculos.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-truck w-6"></i> Flotas y Vehículos
+                    </a>
+                    <a href="costos-ingresos.html" class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-invoice-dollar w-6"></i> Finanzas / Carga
+                    </a>
+                    <a href="reportes.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-pdf w-6"></i> Reportes
+                    </a>
+                    <a href="portal-chofer.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-mobile-screen w-6"></i> Portal Chofer
+                    </a>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center flex justify-between items-center">
+                <span>FleetMaster v1.0</span>
+                <button onclick="DB.logout()" class="text-rose-400 hover:text-rose-300 font-semibold flex items-center">
+                    <i class="fa-solid fa-power-off mr-1"></i> Salir
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+                <h1 class="text-xl font-bold text-slate-800">Carga Operativa Diaria (Gastos e Ingresos)</h1>
+                <button onclick="abrirModalMovimiento()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition flex items-center">
+                    <i class="fa-solid fa-plus mr-2"></i> Registrar Movimiento
+                </button>
+            </header>
+
+            <main class="p-6 space-y-6">
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Historial de Transacciones Registradas</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4">Fecha</th>
+                                    <th class="p-4">Vehículo</th>
+                                    <th class="p-4">Tipo de Operación</th>
+                                    <th class="p-4">Categoría Estandarizada</th>
+                                    <th class="p-4 text-right">Monto</th>
+                                    <th class="p-4 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-movimientos" class="divide-y divide-slate-100">
+                                <!-- Dinámico -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL DE REGISTRO DE MOVIMIENTO -->
+    <div id="modal-movimiento" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-200 pb-3">
+                <h3 class="text-lg font-bold text-slate-800">Registrar Transacción Finanzas</h3>
+                <button onclick="cerrarModalMovimiento()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form onsubmit="guardarMovimiento(event)" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha</label>
+                        <input type="date" id="m-fecha" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Vehículo</label>
+                        <select id="m-vehiculo" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo de Flujo</label>
+                        <select id="m-tipo-flujo" onchange="actualizarCategorias()" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold">
+                            <option value="GASTO_VARIABLE">Costo Variable (Gasto)</option>
+                            <option value="INGRESO">Facturación / Flete (Ingreso)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Categoría Oficial</label>
+                        <select id="m-categoria" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                            <!-- Se actualiza por JS -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Monto ($)</label>
+                    <input type="number" step="0.01" id="m-monto" required min="0.01" placeholder="0.00" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2 border-t border-slate-200">
+                    <button type="button" onclick="cerrarModalMovimiento()" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg text-sm font-medium">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">Guardar Transacción</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <script src="js/db.js"></script>
+    <script>
+        DB.verificarSesion('ADMIN');
+
+        // CATALOGO FIJO DE CATEGORÍAS
+        const CATALOGO_CATEGORIAS = {
+            GASTO_VARIABLE: [
+                "Combustible (Diesel / Gasolina)",
+                "Mantenimiento Correctivo / Reparación",
+                "Mantenimiento Preventivo",
+                "Llantas / Neumáticos",
+                "Peajes / Telepases",
+                "Viáticos / Alimentación Chofer",
+                "Lavado / Estética Operativa",
+                "Imprevistos / Multas en Ruta"
+            ],
+            INGRESO: [
+                "Flete / Servicio de Carga",
+                "Servicio de Distribución Ultima Milla",
+                "Alquiler de Unidad con Chofer",
+                "Reembolso de Cliente"
+            ]
+        };
+
+        function actualizarCategorias() {
+            const tipoFlujo = document.getElementById('m-tipo-flujo').value;
+            const selectCat = document.getElementById('m-categoria');
+            selectCat.innerHTML = '';
+
+            const opciones = CATALOGO_CATEGORIAS[tipoFlujo] || [];
+            opciones.forEach(cat => {
+                selectCat.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+        }
+
+        function renderizarMovimientos() {
+            const data = DB.get() || {};
+            const tbody = document.getElementById('tabla-movimientos');
+            tbody.innerHTML = '';
+
+            const movimientos = data.movimientos || [];
+
+            if (movimientos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-xs text-slate-400">No hay movimientos registrados.</td></tr>';
+                return;
+            }
+
+            movimientos.forEach((m, index) => {
+                const esIngreso = m.tipoFlujo === 'INGRESO';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-medium text-slate-700">${m.fecha}</td>
+                        <td class="p-4 font-bold text-slate-800">${m.vehiculoPlaca}</td>
+                        <td class="p-4">
+                            <span class="px-2 py-1 rounded text-xs font-bold ${esIngreso ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                                ${esIngreso ? 'INGRESO' : 'GASTO VARIABLE'}
+                            </span>
+                        </td>
+                        <td class="p-4 text-slate-600 font-semibold">${m.categoria}</td>
+                        <td class="p-4 text-right font-bold ${esIngreso ? 'text-emerald-600' : 'text-rose-600'}">
+                            ${esIngreso ? '+' : '-'}$${(parseFloat(m.monto) || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="eliminarMovimiento(${index})" class="text-rose-500 hover:text-rose-700 font-bold text-xs"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function abrirModalMovimiento() {
+            const data = DB.get() || {};
+            const selectVehiculos = document.getElementById('m-vehiculo');
+            selectVehiculos.innerHTML = '';
+
+            const vehiculos = data.vehiculos || [];
+            if (vehiculos.length === 0) {
+                alert('Debes registrar al menos un vehículo antes de cargar movimientos.');
+                return;
+            }
+
+            vehiculos.forEach(v => {
+                selectVehiculos.innerHTML += `<option value="${v.placa}">${v.placa} (${v.tipo})</option>`;
+            });
+
+            document.getElementById('m-fecha').value = new Date().toISOString().substring(0, 10);
+            actualizarCategorias();
+
+            document.getElementById('modal-movimiento').classList.remove('hidden');
+            document.getElementById('modal-movimiento').classList.add('flex');
+        }
+
+        function cerrarModalMovimiento() {
+            document.getElementById('modal-movimiento').classList.add('hidden');
+            document.getElementById('modal-movimiento').classList.remove('flex');
+        }
+
+        function guardarMovimiento(e) {
+            e.preventDefault();
+            const data = DB.get() || {};
+            if(!data.movimientos) data.movimientos = [];
+
+            const nuevoMovimiento = {
+                fecha: document.getElementById('m-fecha').value,
+                vehiculoPlaca: document.getElementById('m-vehiculo').value,
+                tipoFlujo: document.getElementById('m-tipo-flujo').value,
+                categoria: document.getElementById('m-categoria').value,
+                monto: parseFloat(document.getElementById('m-monto').value) || 0,
+                fechaRegistro: new Date().toISOString()
+            };
+
+            data.movimientos.push(nuevoMovimiento);
+            DB.save(data);
+
+            cerrarModalMovimiento();
+            renderizarMovimientos();
+        }
+
+        function eliminarMovimiento(index) {
+            if (confirm('¿Eliminar esta transacción?')) {
+                const data = DB.get() || {};
+                data.movimientos.splice(index, 1);
+                DB.save(data);
+                renderizarMovimientos();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', renderizarMovimientos);
+    </script>
+</body>
+</html>

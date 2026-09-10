@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetMaster - Portal Chofer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 font-sans text-slate-100 flex justify-center min-h-screen">
+
+    <!-- CONTENEDOR VISTA MÓVIL -->
+    <div class="w-full max-w-md bg-slate-800 border-x border-slate-700 min-h-screen flex flex-col justify-between shadow-2xl">
+        
+        <!-- HEADER MÓVIL -->
+        <div>
+            <header class="p-4 bg-slate-950 border-b border-slate-700 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-truck-fast text-indigo-500 text-xl"></i>
+                    <span class="font-bold tracking-wider text-sm text-white">FLEETMASTER <span class="text-xs text-indigo-400 font-normal">| Chofer</span></span>
+                </div>
+                <button onclick="DB.logout()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center">
+                    <i class="fa-solid fa-power-off mr-1"></i> Salir
+                </button>
+            </header>
+
+            <!-- FORMULARIO DE REGISTRO DE GASTO -->
+            <main class="p-5 space-y-6">
+                <div class="bg-indigo-600/10 border border-indigo-500/20 rounded-xl p-4 text-xs text-indigo-300 flex items-start space-x-3">
+                    <i class="fa-solid fa-circle-info text-base mt-0.5 text-indigo-400"></i>
+                    <p>Registra tus tickets de combustible, peajes o mantenimientos. Los gastos serán revisados por el Administrador.</p>
+                </div>
+
+                <form onsubmit="registrarGastoChofer(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Unidad / Vehículo</label>
+                        <select id="chofer-vehiculo" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <!-- Dinámico -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Tipo de Gasto</label>
+                        <select id="chofer-categoria" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="Combustible">Combustible</option>
+                            <option value="Peaje">Peaje / Caseta</option>
+                            <option value="Taller / Mantenimiento">Taller / Mantenimiento</option>
+                            <option value="Viáticos / Alimentos">Viáticos / Alimentos</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Monto del Ticket / Recibo ($)</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 font-bold">$</span>
+                            <input type="number" step="0.01" id="chofer-monto" required placeholder="0.00" class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-8 pr-4 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Odómetro Actual (Km)</label>
+                        <input type="number" id="chofer-km" placeholder="Ej: 145000" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-paper-plane mr-2"></i> Enviar Recibo a Revisión
+                    </button>
+                </form>
+
+                <!-- MIS ENVIOS RECIENTES -->
+                <div class="space-y-3 pt-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Mis Envíos Recientes</h3>
+                    <div id="lista-mis-envios" class="space-y-2">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- FOOTER BAR -->
+        <footer class="p-3 bg-slate-950 border-t border-slate-800 text-center text-xs text-slate-500">
+            Modo Operador Móvil • FleetMaster
+        </footer>
+    </div>
+
+    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <script src="js/db.js"></script>
+    <script>
+        // Restricción de acceso para Chofer
+        DB.verificarSesion('CHOFER');
+
+        function cargarPortalChofer() {
+            const data = DB.get();
+            const selectVehiculo = document.getElementById('chofer-vehiculo');
+            const listaEnvios = document.getElementById('lista-mis-envios');
+
+            selectVehiculo.innerHTML = '';
+            listaEnvios.innerHTML = '';
+
+            // Cargar selector de vehículos
+            if (!data.vehiculos || data.vehiculos.length === 0) {
+                selectVehiculo.innerHTML = '<option value="">Sin vehículos registrados</option>';
+            } else {
+                data.vehiculos.forEach(v => {
+                    selectVehiculo.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`;
+                });
+            }
+
+            // Cargar mis envíos recientes
+            const misEnvios = (data.movimientos || []).filter(m => m.registradoPor === 'Chofer').reverse();
+
+            if (misEnvios.length === 0) {
+                listaEnvios.innerHTML = '<p class="text-xs text-slate-500 italic">No has enviado recibos aún.</p>';
+            } else {
+                misEnvios.slice(0, 5).forEach(m => {
+                    let estadoColor = 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+                    if (m.estado === 'APROBADO') estadoColor = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+                    if (m.estado === 'RECHAZADO') estadoColor = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
+
+                    listaEnvios.innerHTML += `
+                        <div class="p-3 bg-slate-900 border border-slate-700/60 rounded-xl flex justify-between items-center text-xs">
+                            <div>
+                                <span class="font-bold text-white block">${m.categoria} (${m.vehiculoPlaca})</span>
+                                <span class="text-slate-400">$${m.monto.toFixed(2)}</span>
+                            </div>
+                            <span class="px-2 py-1 rounded-lg border font-bold text-[10px] uppercase ${estadoColor}">
+                                ${m.estado}
+                            </span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
+        function registrarGastoChofer(e) {
+            e.preventDefault();
+            const data = DB.get();
+
+            const placaSeleccionada = document.getElementById('chofer-vehiculo').value;
+            const nuevoKm = parseFloat(document.getElementById('chofer-km').value);
+
+            if (!placaSeleccionada) {
+                alert('Selecciona un vehículo válido.');
+                return;
+            }
+
+            // Actualizar odómetro del vehículo si introdujo un km mayor
+            if (nuevoKm) {
+                const indexVehiculo = data.vehiculos.findIndex(v => v.placa === placaSeleccionada);
+                if (indexVehiculo !== -1 && nuevoKm > (data.vehiculos[indexVehiculo].kmRecorridos || 0)) {
+                    data.vehiculos[indexVehiculo].kmRecorridos = nuevoKm;
+                }
+            }
+
+            // Crear el nuevo gasto para revisión del admin
+            const nuevoGasto = {
+                vehiculoPlaca: placaSeleccionada,
+                tipo: 'GASTO_VARIABLE',
+                categoria: document.getElementById('chofer-categoria').value,
+                monto: parseFloat(document.getElementById('chofer-monto').value) || 0,
+                estado: 'PENDIENTE',
+                registradoPor: 'Chofer'
+            };
+
+            data.movimientos.push(nuevoGasto);
+            DB.save(data);
+
+            // Limpiar campos de entrada
+            document.getElementById('chofer-monto').value = '';
+            document.getElementById('chofer-km').value = '';
+
+            alert('¡Recibo enviado exitosamente a revisión!');
+            cargarPortalChofer();
+        }
+
+        document.addEventListener('DOMContentLoaded', cargarPortalChofer);
+    </script>
+</body>
+</html>

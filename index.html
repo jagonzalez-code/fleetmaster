@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetMaster - Dashboard Financiero y Operativo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- SIDEBAR IZQUIERDO UNIFICADO -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between hidden md:flex">
+            <div>
+                <div class="h-16 flex items-center px-6 bg-slate-950 font-bold text-xl text-white tracking-wider">
+                    <i class="fa-solid fa-truck-fast text-indigo-500 mr-3"></i> FLEETMASTER
+                </div>
+                <nav class="mt-6 px-4 space-y-1">
+                    <a href="index.html" class="flex items-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-chart-pie w-6"></i> Dashboard
+                    </a>
+                    <a href="vehiculos.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-truck w-6"></i> Flotas y Vehículos
+                    </a>
+                    <a href="costos-ingresos.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-invoice-dollar w-6"></i> Finanzas / Carga
+                    </a>
+                    <a href="reportes.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-file-pdf w-6"></i> Reportes
+                    </a>
+                    <a href="portal-chofer.html" class="flex items-center px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg font-medium transition">
+                        <i class="fa-solid fa-mobile-screen w-6"></i> Portal Chofer
+                    </a>
+                </nav>
+            </div>
+            <div class="p-4 border-t border-slate-800 text-xs text-slate-500 text-center flex justify-between items-center">
+                <span>FleetMaster v1.0</span>
+                <button onclick="DB.logout()" class="text-rose-400 hover:text-rose-300 font-semibold flex items-center">
+                    <i class="fa-solid fa-power-off mr-1"></i> Salir
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="flex-1 flex flex-col overflow-y-auto">
+            <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+                <h1 class="text-xl font-bold text-slate-800">Dashboard General de Rendimiento</h1>
+                <div class="flex items-center space-x-3">
+                    <label for="filtroMes" class="text-xs font-bold text-slate-500 uppercase">Período:</label>
+                    <input type="month" id="filtroMes" onchange="cargarDashboard()" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </header>
+
+            <main class="p-6 space-y-6">
+                <!-- PANEL DE ALERTAS DE ANOMALÍAS DE COSTOS -->
+                <div id="contenedorAlertas" class="hidden space-y-2">
+                    <!-- Se inyectan dinámicamente si hay costos inusuales -->
+                </div>
+
+                <!-- TARJETAS DE KPIs DINÁMICAS -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-indigo-500">
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Facturado</p>
+                            <i class="fa-solid fa-wallet text-indigo-500 text-lg"></i>
+                        </div>
+                        <p id="kpiFacturado" class="text-2xl font-extrabold text-slate-800 mt-2">$0.00</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-rose-500">
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Costos Totales</p>
+                            <i class="fa-solid fa-receipt text-rose-500 text-lg"></i>
+                        </div>
+                        <p id="kpiCostos" class="text-2xl font-extrabold text-slate-800 mt-2">$0.00</p>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-emerald-500">
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Utilidad Neta / Margen</p>
+                            <i class="fa-solid fa-chart-line text-emerald-500 text-lg"></i>
+                        </div>
+                        <div class="flex items-baseline space-x-2 mt-2">
+                            <p id="kpiUtilidad" class="text-2xl font-extrabold text-slate-800">$0.00</p>
+                            <span id="kpiMargenGeneral" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-amber-500">
+                        <div class="flex justify-between items-center">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">CPK Promedio Flota</p>
+                            <i class="fa-solid fa-road text-amber-500 text-lg"></i>
+                        </div>
+                        <p id="kpiCpkPromedio" class="text-2xl font-extrabold text-slate-800 mt-2">$0.00 / km</p>
+                    </div>
+                </div>
+
+                <!-- DESGLOSE OPERATIVO POR VEHÍCULO -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider">Rendimiento Consolidado por Vehículo</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase text-xs border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4">Vehículo / Placa</th>
+                                    <th class="p-4 text-right">Km Recorridos</th>
+                                    <th class="p-4 text-right">Costos Fijos</th>
+                                    <th class="p-4 text-right">Costos Variables</th>
+                                    <th class="p-4 text-right">Total Costos</th>
+                                    <th class="p-4 text-right">CPK ($/km)</th>
+                                    <th class="p-4 text-right">Facturado</th>
+                                    <th class="p-4 text-right">Utilidad Neta</th>
+                                    <th class="p-4 text-center">Margen</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaRendimiento" class="divide-y divide-slate-100">
+                                <!-- Se construye dinámicamente desde la BD -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- GRÁFICOS ANALÍTICOS -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+                            Comparativo: Costos vs. Facturación por Vehículo
+                        </h3>
+                        <div class="relative h-64">
+                            <canvas id="graficoComparativo"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-2">
+                            Distribución General de Costos (Fijos vs. Variables)
+                        </h3>
+                        <div class="relative h-64 flex justify-center">
+                            <canvas id="graficoDistribucion"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- CARGA DE CAPA DE DATOS BASE -->
+    <script src="js/db.js"></script>
+    <script>
+        DB.verificarSesion('ADMIN');
+
+        let chartComparativo = null;
+        let chartDistribucion = null;
+
+        function cargarDashboard() {
+            const data = DB.get() || {};
+            const mesSeleccionado = document.getElementById('filtroMes').value;
+
+            const vehiculos = data.vehiculos || [];
+            const movimientos = data.movimientos || [];
+            const consolidados = data.consolidadosMensuales || [];
+
+            const mapaRendimiento = {};
+            const alertas = [];
+
+            // 1. Inicializar lista con los vehículos registrados en el sistema
+            vehiculos.forEach(v => {
+                const dep = parseFloat(v.depreciacion) || 0;
+                const sal = parseFloat(v.salario) || 0;
+                const seg = parseFloat(v.seguro) || 0;
+                const otr = parseFloat(v.otrosFijos) || 0;
+
+                mapaRendimiento[v.placa] = {
+                    placa: v.placa,
+                    tipo: v.tipo || 'N/A',
+                    costosFijos: dep + sal + seg + otr,
+                    costosVariables: 0,
+                    facturado: 0,
+                    kilometros: 0
+                };
+            });
+
+            // 2. Acumular movimientos individuales (Gastos Variables, Ingresos y Kilometraje)
+            movimientos.forEach(m => {
+                if (mesSeleccionado && m.fecha && !m.fecha.startsWith(mesSeleccionado)) {
+                    return;
+                }
+
+                if (!mapaRendimiento[m.vehiculoPlaca]) {
+                    mapaRendimiento[m.vehiculoPlaca] = {
+                        placa: m.vehiculoPlaca,
+                        tipo: 'N/A',
+                        costosFijos: 0,
+                        costosVariables: 0,
+                        facturado: 0,
+                        kilometros: 0
+                    };
+                }
+
+                const monto = parseFloat(m.monto) || 0;
+                if (m.tipoFlujo === 'GASTO_VARIABLE' || m.tipo === 'GASTO_VARIABLE') {
+                    if (!m.estado || m.estado === 'APROBADO') {
+                        mapaRendimiento[m.vehiculoPlaca].costosVariables += monto;
+                    }
+                } else if (m.tipoFlujo === 'INGRESO') {
+                    mapaRendimiento[m.vehiculoPlaca].facturado += monto;
+                }
+
+                // Suma de kilometraje registrado
+                if (m.kmRecorridos) {
+                    mapaRendimiento[m.vehiculoPlaca].kilometros += parseFloat(m.kmRecorridos) || 0;
+                }
+            });
+
+            // 3. Consolidar cargas mensuales si aplican para el período
+            consolidados.forEach(c => {
+                if (c.estado === 'ANULADO') return;
+                if (mesSeleccionado && c.mes !== mesSeleccionado) return;
+
+                if (!mapaRendimiento[c.vehiculoPlaca]) {
+                    mapaRendimiento[c.vehiculoPlaca] = {
+                        placa: c.vehiculoPlaca,
+                        tipo: 'N/A',
+                        costosFijos: 0,
+                        costosVariables: 0,
+                        facturado: 0,
+                        kilometros: 0
+                    };
+                }
+
+                const dep = parseFloat(c.depreciacion) || 0;
+                const sal = parseFloat(c.salario) || 0;
+                const seg = parseFloat(c.seguro) || 0;
+                const otr = parseFloat(c.otrosFijos) || 0;
+                
+                const fijosMes = dep + sal + seg + otr;
+                if (fijosMes > 0) {
+                    mapaRendimiento[c.vehiculoPlaca].costosFijos = fijosMes;
+                }
+
+                mapaRendimiento[c.vehiculoPlaca].costosVariables += parseFloat(c.costosVariables) || 0;
+                mapaRendimiento[c.vehiculoPlaca].facturado += parseFloat(c.facturado) || 0;
+                mapaRendimiento[c.vehiculoPlaca].kilometros += parseFloat(c.kmRecorridos) || 0;
+            });
+
+            // 4. Renderizar Tabla, Alertas y Cálculos de KPIs
+            const tbody = document.getElementById('tablaRendimiento');
+            tbody.innerHTML = '';
+
+            let totalFacturado = 0;
+            let totalCostos = 0;
+            let totalUtilidad = 0;
+            let totalFijos = 0;
+            let totalVar = 0;
+            let totalKmFlota = 0;
+
+            const etiquetas = [];
+            const datosFacturado = [];
+            const datosCostos = [];
+
+            const listaResultados = Object.values(mapaRendimiento);
+
+            if (listaResultados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-xs text-slate-400">No hay información cargada para mostrar. Registra vehículos y movimientos.</td></tr>';
+            } else {
+                listaResultados.forEach(v => {
+                    const costoTotal = v.costosFijos + v.costosVariables;
+                    const utilidad = v.facturado - costoTotal;
+                    const cpk = v.kilometros > 0 ? (costoTotal / v.kilometros) : 0;
+                    const margen = v.facturado > 0 ? ((utilidad / v.facturado) * 100) : 0;
+
+                    totalFacturado += v.facturado;
+                    totalCostos += costoTotal;
+                    totalUtilidad += utilidad;
+                    totalFijos += v.costosFijos;
+                    totalVar += v.costosVariables;
+                    totalKmFlota += v.kilometros;
+
+                    etiquetas.push(v.placa);
+                    datosFacturado.push(v.facturado);
+                    datosCostos.push(costoTotal);
+
+                    // Regla de detección de costos atípicos/anomalías:
+                    // Alerta si los costos superan a la facturación o si el gasto variable representa más del 70% del costo total
+                    if (costoTotal > v.facturado && v.facturado > 0) {
+                        alertas.push(`<strong>${v.placa}:</strong> Los costos totales ($${costoTotal.toFixed(2)}) superan el ingreso facturado ($${v.facturado.toFixed(2)}).`);
+                    } else if (v.costosVariables > 0 && (v.costosVariables / (costoTotal || 1)) > 0.7) {
+                        alertas.push(`<strong>${v.placa}:</strong> Costos variables inusualmente altos (representan más del 70% del costo total).`);
+                    }
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 transition">
+                            <td class="p-4 font-bold text-slate-800">${v.placa} <span class="text-xs font-normal text-slate-400">(${v.tipo})</span></td>
+                            <td class="p-4 text-right text-slate-600">${v.kilometros.toLocaleString('en-US')} km</td>
+                            <td class="p-4 text-right text-slate-600">$${v.costosFijos.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right text-slate-600">$${v.costosVariables.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right font-bold text-rose-600">$${costoTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right font-bold text-amber-600">$${cpk.toFixed(2)}</td>
+                            <td class="p-4 text-right font-bold text-emerald-600">$${v.facturado.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                            <td class="p-4 text-right font-extrabold ${utilidad >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
+                                $${utilidad.toLocaleString('en-US', {minimumFractionDigits: 2})}
+                            </td>
+                            <td class="p-4 text-center">
+                                <span class="text-xs font-bold px-2 py-1 rounded-full ${margen >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}">
+                                    ${margen.toFixed(1)}%
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            // Desplegar alertas en pantalla
+            const contenedorAlertas = document.getElementById('contenedorAlertas');
+            if (alertas.length > 0) {
+                contenedorAlertas.classList.remove('hidden');
+                contenedorAlertas.innerHTML = alertas.map(a => `
+                    <div class="bg-amber-50 border-l-4 border-amber-500 text-amber-800 p-3 rounded-lg text-xs flex items-center justify-between">
+                        <div><i class="fa-solid fa-triangle-exclamation mr-2 text-amber-500"></i> ${a}</div>
+                        <span class="font-bold text-amber-600 uppercase text-[10px]">Revisar</span>
+                    </div>
+                `).join('');
+            } else {
+                contenedorAlertas.classList.add('hidden');
+            }
+
+            // Actualizar Tarjetas KPI
+            const margenGeneral = totalFacturado > 0 ? ((totalUtilidad / totalFacturado) * 100) : 0;
+            const cpkPromedioFlota = totalKmFlota > 0 ? (totalCostos / totalKmFlota) : 0;
+
+            document.getElementById('kpiFacturado').innerText = `$${totalFacturado.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('kpiCostos').innerText = `$${totalCostos.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('kpiUtilidad').innerText = `$${totalUtilidad.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+            document.getElementById('kpiMargenGeneral').innerText = `${margenGeneral.toFixed(1)}%`;
+            document.getElementById('kpiMargenGeneral').className = `text-xs font-bold px-2 py-0.5 rounded-full ${margenGeneral >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`;
+            document.getElementById('kpiCpkPromedio').innerText = `$${cpkPromedioFlota.toFixed(2)} / km`;
+
+            // Renderizar Gráficos con Chart.js
+            renderizarGraficos(etiquetas, datosFacturado, datosCostos, totalFijos, totalVar);
+        }
+
+        function renderizarGraficos(etiquetas, facturado, costos, totalFijos, totalVar) {
+            if (chartComparativo) chartComparativo.destroy();
+            if (chartDistribucion) chartDistribucion.destroy();
+
+            // Gráfico 1: Barras Comparativas
+            const ctx1 = document.getElementById('graficoComparativo').getContext('2d');
+            chartComparativo = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: etiquetas,
+                    datasets: [
+                        { label: 'Facturado ($)', data: facturado, backgroundColor: '#10B981' },
+                        { label: 'Costos Totales ($)', data: costos, backgroundColor: '#F43F5E' }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Gráfico 2: Dona de Distribución de Costos
+            const ctx2 = document.getElementById('graficoDistribucion').getContext('2d');
+            chartDistribucion = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Costos Fijos', 'Costos Variables'],
+                    datasets: [{
+                        data: [totalFijos, totalVar],
+                        backgroundColor: ['#6366F1', '#F59E0B']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const hoy = new Date();
+            document.getElementById('filtroMes').value = hoy.toISOString().substring(0, 7);
+            cargarDashboard();
+        });
+    </script>
+</body>
+</html>
